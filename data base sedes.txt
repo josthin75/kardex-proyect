@@ -1,0 +1,202 @@
+-- ================================================================
+-- SISTEMA SEDES KARDEX - ESQUEMA DE BASE DE DATOS REAL (Sincronizado)
+-- ================================================================
+
+-- ================================================================
+-- NIVEL 1 — CATÁLOGOS INDEPENDIENTES
+-- ================================================================
+
+-- 1.1 Roles del sistema
+CREATE TABLE roles (
+    id_rol      SERIAL          PRIMARY KEY,
+    nombre_rol  VARCHAR(60)     NOT NULL UNIQUE,
+    descripcion TEXT
+);
+
+-- 1.2 Tipos / clase de trabajo del cliente
+CREATE TABLE tipos_trabajo (
+    id_tipo_trabajo SERIAL      PRIMARY KEY,
+    descripcion     VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- 1.3 Catálogo de grupos sanguíneos
+CREATE TABLE grupos_sanguineos (
+    id_grupo     SERIAL         PRIMARY KEY,
+    nombre_grupo VARCHAR(10)    NOT NULL,
+    descripcion  TEXT
+);
+
+-- ================================================================
+-- NIVEL 2 — ENTIDADES BASE (Usuarios y Clientes)
+-- ================================================================
+
+-- 2.1 Usuarios del sistema
+CREATE TABLE usuarios (
+    id_usuario      SERIAL          PRIMARY KEY,
+    nombre          VARCHAR(100)    NOT NULL,
+    apellido        VARCHAR(100)    NOT NULL,
+    ci              VARCHAR(20)     NOT NULL UNIQUE,
+    id_rol          INTEGER         NOT NULL REFERENCES roles(id_rol),
+    contrasena_hash TEXT            NOT NULL,
+    fecha_creacion  TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    activo          BOOLEAN         NOT NULL DEFAULT TRUE
+);
+
+-- 2.2 Clientes / pacientes
+CREATE TABLE clientes (
+    id_cliente       SERIAL          PRIMARY KEY,
+    nombre           VARCHAR(100)    NOT NULL,
+    apellido         VARCHAR(100)    NOT NULL,
+    fecha_nacimiento DATE            NOT NULL,
+    ci               VARCHAR(20)     NOT NULL UNIQUE,
+    domicilio        TEXT            NOT NULL,
+    nro_celular      VARCHAR(20),
+    fecha_registro   TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    lugar_trabajo    VARCHAR(200),
+    foto             TEXT,
+    tipo_tramite     VARCHAR(20),
+    id_tipo_trabajo  INTEGER         REFERENCES tipos_trabajo(id_tipo_trabajo),
+    id_gs            INTEGER         REFERENCES grupos_sanguineos(id_grupo)
+);
+
+-- ================================================================
+-- NIVEL 3 — TABLAS DE ANÁLISIS (Campos clínicos reales)
+-- ================================================================
+
+-- 3.1 Parasitología
+CREATE TABLE analisis_parasitologia (
+    id_parasitologia    SERIAL          PRIMARY KEY,
+    consistencia_heces  VARCHAR(20)     CHECK (consistencia_heces IN ('LIQUIDA','BLANDA','SEMIBLANDA','FORMADA','DURA')),
+    color_heces         VARCHAR(30),
+    sangre_macroscopica BOOLEAN         DEFAULT FALSE,
+    moco_macroscopico   BOOLEAN         DEFAULT FALSE,
+    leucocitos          VARCHAR(20),
+    eritrocitos         VARCHAR(20),
+    celulas_epiteliales VARCHAR(20),
+    levaduras           BOOLEAN         DEFAULT FALSE,
+    parasito_encontrado BOOLEAN         NOT NULL DEFAULT FALSE,
+    nombre_parasito     VARCHAR(200),
+    estadio_parasito    VARCHAR(50),
+    cantidad_parasitos  VARCHAR(30),
+    metodo_directo      BOOLEAN         DEFAULT TRUE,
+    metodo_concentracion BOOLEAN        DEFAULT FALSE,
+    metodo_kato_katz    BOOLEAN         DEFAULT FALSE,
+    tincion_utilizada   VARCHAR(50),
+    resultado_general   TEXT            NOT NULL,
+    observaciones       TEXT,
+    id_responsable      INTEGER         NOT NULL REFERENCES usuarios(id_usuario),
+    fecha_analisis      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+-- 3.2 Glicemia
+CREATE TABLE analisis_glicemia (
+    id_glicemia         SERIAL          PRIMARY KEY,
+    tipo_muestra        VARCHAR(30)     NOT NULL CHECK (tipo_muestra IN ('AYUNAS','POSTPRANDIAL_1H','POSTPRANDIAL_2H','CASUAL','CURVA_TOLERANCIA')),
+    horas_ayuno         SMALLINT,
+    glucosa_mg_dl       NUMERIC         NOT NULL,
+    glucosa_basal_mgdl  NUMERIC,
+    glucosa_60min_mgdl  NUMERIC,
+    glucosa_120min_mgdl NUMERIC,
+    interpretacion      VARCHAR(30)     CHECK (interpretacion IN ('NORMAL','PREDIABETES','DIABETES','HIPOGLUCEMIA','NO_APLICA')),
+    metodo_analisis     VARCHAR(60),
+    muestra_tipo        VARCHAR(20)     DEFAULT 'PLASMA_VENOSO',
+    observaciones       TEXT,
+    id_responsable      INTEGER         NOT NULL REFERENCES usuarios(id_usuario),
+    fecha_analisis      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+-- 3.3 VIH
+CREATE TABLE analisis_vih (
+    id_vih                  SERIAL          PRIMARY KEY,
+    prueba_tamizaje         VARCHAR(60)     NOT NULL,
+    resultado_tamizaje      VARCHAR(20)     NOT NULL CHECK (resultado_tamizaje IN ('REACTIVO','NO_REACTIVO','INDETERMINADO')),
+    indice_s_co             NUMERIC,
+    prueba_confirmatoria    VARCHAR(60),
+    resultado_confirmatorio VARCHAR(20)     CHECK (resultado_confirmatorio IN ('POSITIVO','NEGATIVO','INDETERMINADO','NO_REALIZADO')),
+    tipo_muestra            VARCHAR(30)     DEFAULT 'SUERO' CHECK (tipo_muestra IN ('SUERO','PLASMA','SANGRE_TOTAL','PRUEBA_RAPIDA')),
+    resultado_final         VARCHAR(20)     NOT NULL CHECK (resultado_final IN ('REACTIVO','NO_REACTIVO','INDETERMINADO')),
+    control_positivo        BOOLEAN,
+    control_negativo        BOOLEAN,
+    consejeria_pretest      BOOLEAN         DEFAULT FALSE,
+    consejeria_postest      BOOLEAN         DEFAULT FALSE,
+    observaciones           TEXT,
+    id_responsable          INTEGER         NOT NULL REFERENCES usuarios(id_usuario),
+    fecha_analisis          TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+-- 3.4 Chagas
+CREATE TABLE analisis_chagas (
+    id_chagas           SERIAL          PRIMARY KEY,
+    fase_sospechada     VARCHAR(20)     CHECK (fase_sospechada IN ('AGUDA','CRONICA','CONGENITA','DESCONOCIDA')),
+    prueba_elisa        VARCHAR(60),
+    resultado_elisa     VARCHAR(20)     CHECK (resultado_elisa IN ('REACTIVO','NO_REACTIVO','INDETERMINADO','NO_REALIZADO')),
+    indice_elisa        NUMERIC,
+    prueba_hat          VARCHAR(60),
+    resultado_hat       VARCHAR(20)     CHECK (resultado_hat IN ('REACTIVO','NO_REACTIVO','INDETERMINADO','NO_REALIZADO')),
+    prueba_ifi          VARCHAR(60),
+    resultado_ifi       VARCHAR(20)     CHECK (resultado_ifi IN ('REACTIVO','NO_REACTIVO','INDETERMINADO','NO_REALIZADO')),
+    titulo_ifi          VARCHAR(20),
+    gota_gruesa         BOOLEAN         DEFAULT FALSE,
+    resultado_gota_gruesa VARCHAR(20)    CHECK (resultado_gota_gruesa IN ('POSITIVO','NEGATIVO','NO_REALIZADO')),
+    estudio_xenodiagnostico BOOLEAN     DEFAULT FALSE,
+    resultado_final     VARCHAR(20)     NOT NULL CHECK (resultado_final IN ('REACTIVO','NO_REACTIVO','INDETERMINADO')),
+    control_positivo    BOOLEAN,
+    control_negativo    BOOLEAN,
+    observaciones       TEXT,
+    id_responsable      INTEGER         NOT NULL REFERENCES usuarios(id_usuario),
+    fecha_analisis      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+-- 3.5 Grupo Sanguíneo (Tipificación)
+CREATE TABLE analisis_grupo_sanguineo (
+    id_analisis_gs      SERIAL          PRIMARY KEY,
+    reaccion_anti_a     VARCHAR(10),
+    reaccion_anti_b     VARCHAR(10),
+    reaccion_anti_ab    VARCHAR(10),
+    reaccion_anti_d     VARCHAR(10),
+    rh_debil_du         BOOLEAN         DEFAULT FALSE,
+    id_grupo_resultado  INTEGER         NOT NULL REFERENCES grupos_sanguineos(id_grupo),
+    tecnica_utilizada   VARCHAR(60),
+    prueba_cruzada_mayor VARCHAR(20),
+    prueba_cruzada_menor VARCHAR(20),
+    observaciones       TEXT,
+    id_responsable      INTEGER         NOT NULL REFERENCES usuarios(id_usuario),
+    fecha_analisis      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+-- ================================================================
+-- NIVEL 4 — DETALLE LABORAL Y CIERRE MÉDICO
+-- ================================================================
+
+-- 4.1 Análisis de Laboratorio (Consolidador)
+CREATE TABLE analisis_laboratorio (
+    id_analisis_lab     SERIAL          PRIMARY KEY,
+    id_cliente          INTEGER         NOT NULL REFERENCES clientes(id_cliente),
+    id_usuario_registro INTEGER         NOT NULL REFERENCES usuarios(id_usuario),
+    id_parasitologia    INTEGER         REFERENCES analisis_parasitologia(id_parasitologia),
+    id_analisis_gs      INTEGER         REFERENCES analisis_grupo_sanguineo(id_analisis_gs),
+    id_glicemia         INTEGER         REFERENCES analisis_glicemia(id_glicemia),
+    id_vih              INTEGER         REFERENCES analisis_vih(id_vih),
+    id_chagas           INTEGER         REFERENCES analisis_chagas(id_chagas),
+    observacion         TEXT,
+    fecha_registro      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_al_menos_un_analisis CHECK (
+        id_parasitologia IS NOT NULL OR 
+        id_analisis_gs IS NOT NULL OR 
+        id_glicemia IS NOT NULL OR 
+        id_vih IS NOT NULL OR 
+        id_chagas IS NOT NULL
+    )
+);
+
+-- 4.2 Historial Médico
+CREATE TABLE historial_medico (
+    id_historial        SERIAL          PRIMARY KEY,
+    id_analisis_lab     INTEGER         NOT NULL REFERENCES analisis_laboratorio(id_analisis_lab),
+    id_cliente          INTEGER         NOT NULL REFERENCES clientes(id_cliente),
+    id_usuario          INTEGER         NOT NULL REFERENCES usuarios(id_usuario),
+    diagnostico         TEXT            NOT NULL,
+    tratamiento         TEXT,
+    fecha_consulta      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    observaciones       TEXT
+);

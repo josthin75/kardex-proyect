@@ -1,0 +1,16 @@
+.bio-reports {
+  padding: 2rem;
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn 0.4s ease-out;
+  min-height: 400px;
+}
+
+.bio-reports h3 {
+  margin-top: 0;
+  margin-bottom: 2rem;
+  color: var(--text-main);
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: 1rem;
+}

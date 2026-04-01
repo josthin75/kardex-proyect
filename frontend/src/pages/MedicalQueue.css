@@ -1,0 +1,162 @@
+.medical-queue-container {
+  padding: 1.5rem 2.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.medical-queue-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--text-main);
+  margin-bottom: 2rem;
+  border-left: 4px solid var(--primary);
+  padding-left: 1rem;
+}
+
+/* Grid Médica Compacta */
+.medical-queue-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.medical-card {
+  display: flex;
+  align-items: center;
+  background: var(--bg-card);
+  padding: 1rem 1.5rem;
+  border-radius: 20px;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+  position: relative;
+  gap: 1.5rem;
+}
+
+.medical-card:hover {
+  transform: translateX(8px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
+}
+
+.card-indicator {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: hsla(210, 80%, 45%, 0.1);
+  min-width: 40px;
+  user-select: none;
+}
+
+.patient-avatar-mini {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+  border: 2px solid white;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder-med {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+.patient-core-info {
+  flex: 1;
+}
+
+.patient-name-title {
+  margin: 0 0 0.25rem 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--text-main);
+}
+
+.patient-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.meta-separator {
+  color: var(--border-light);
+  opacity: 0.5;
+}
+
+.card-ctrl {
+  display: flex;
+  align-items: center;
+}
+
+.btn-expediente {
+  background: var(--bg-secondary);
+  color: var(--primary);
+  border: 1px solid var(--primary-light);
+  padding: 0.6rem 1.4rem;
+  border-radius: 12px;
+  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: all 0.2s ease;
+}
+
+.btn-expediente:hover {
+  background: var(--primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.btn-icon-med {
+  width: 16px;
+  height: 16px;
+}
+
+/* Empty State */
+.empty-queue-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--bg-card);
+  border-radius: 28px;
+  border: 2px dashed var(--border-light);
+}
+
+.empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  .medical-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+  }
+}

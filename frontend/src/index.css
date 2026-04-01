@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Premium Medical Light Theme Palette */
+  --bg-main: hsl(210, 33%, 98%);
+  --bg-card: hsl(0, 0%, 100%);
+  --bg-secondary: hsl(210, 20%, 94%);
+  
+  --text-main: hsl(220, 35%, 15%);
+  --text-muted: hsl(215, 20%, 45%);
+  --text-light: hsl(0, 0%, 100%);
+  
+  --primary: hsl(215, 90%, 55%);
+  --primary-hover: hsl(215, 80%, 45%);
+  --primary-light: hsl(215, 90%, 96%);
+  
+  --accent: hsl(250, 85%, 65%);
+  
+  --success: hsl(150, 60%, 45%);
+  --success-bg: hsl(150, 60%, 95%);
+  
+  --error: hsl(350, 75%, 55%);
+  
+  --border-light: hsl(215, 20%, 90%);
+  
+  /* Modern Shadows */
+  --shadow-sm: 0 2px 8px hsla(220, 30%, 10%, 0.04);
+  --shadow-md: 0 8px 24px hsla(220, 30%, 10%, 0.06);
+  --shadow-hover: 0 12px 32px hsla(215, 90%, 55%, 0.15);
+  
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', var(--font-sans);
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(215, 90%, 96%, 0.8) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(250, 85%, 96%, 0.8) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--text-main);
+  margin-top: 0;
+  letter-spacing: -0.02em;
+}
+
+button {
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Scrollbar Personalizado */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(215, 15%, 80%);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(215, 20%, 65%);
+}
+
+/* Utilidades globales */
+.glass-panel {
+  background: hsla(0, 0%, 100%, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid hsla(0, 0%, 100%, 0.5);
+  box-shadow: var(--shadow-md);
+}

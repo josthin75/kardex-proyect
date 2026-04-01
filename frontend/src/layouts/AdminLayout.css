@@ -1,0 +1,203 @@
+.admin-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Sidebar Estilo Cristalin */
+.barra-lateral {
+  width: 280px;
+  background: hsla(220, 40%, 15%, 0.98);
+  backdrop-filter: blur(20px);
+  color: hsla(210, 20%, 95%, 0.9);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 1.5rem;
+  border-right: 1px solid hsla(210, 20%, 100%, 0.05);
+  box-shadow: 15px 0 50px rgba(0,0,0,0.15);
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  z-index: 100;
+}
+
+.barra-lateral.plegada {
+  width: 90px;
+  padding: 2rem 1rem;
+}
+
+.cabecera-lateral {
+  margin-bottom: 3rem;
+  padding: 0 0.5rem 1.5rem;
+  border-bottom: 1px solid hsla(215, 20%, 100%, 0.07);
+}
+
+.cabecera-lateral h3 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: white;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.usuario-identidad {
+  font-size: 0.9rem;
+  color: hsla(210, 20%, 80%, 0.7);
+  margin: 0.8rem 0 0.4rem;
+  font-weight: 500;
+}
+
+.rol-badge {
+  display: inline-block;
+  background: hsla(215, 90%, 55%, 0.2);
+  color: #60a5fa;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.25rem 0.7rem;
+  border-radius: 6px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid hsla(215, 90%, 55%, 0.1);
+}
+
+/* Navegación Premium */
+.navegacion-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.navegacion-lateral a {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  color: hsla(210, 20%, 85%, 0.8);
+  text-decoration: none;
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.navegacion-lateral a:hover {
+  background: hsla(210, 20%, 100%, 0.04);
+  color: white;
+  transform: translateX(5px);
+}
+
+.navegacion-lateral a.activo {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 10px 20px hsla(215, 90%, 55%, 0.25);
+}
+
+.nav-icon {
+  font-size: 1.3rem;
+  min-width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Toggle & Footer */
+.btn-toggle {
+  background: hsla(210, 20%, 100%, 0.05);
+  border: 1px solid hsla(210, 20%, 100%, 0.1);
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  position: absolute;
+  top: 1.5rem;
+  right: -20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+  z-index: 101;
+}
+
+.btn-toggle:hover {
+  background: var(--primary);
+  transform: scale(1.1);
+}
+
+.btn-cierre {
+  background: hsla(0, 80%, 45%, 0.08);
+  border: 1px solid hsla(0, 80%, 45%, 0.15);
+  color: #f87171;
+  padding: 1rem;
+  border-radius: 16px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.9rem;
+  margin-top: 2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.btn-cierre:hover {
+  background: #dc2626;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+}
+
+/* Page Control Center */
+.area-contenido {
+  flex: 1;
+  height: 100vh;
+  overflow-y: auto;
+  position: relative;
+  scrollbar-gutter: stable;
+}
+
+.cabecera-pagina {
+  position: sticky;
+  top: 0;
+  background: hsla(0, 0%, 100%, 0.6);
+  backdrop-filter: blur(15px);
+  padding: 1.5rem 3rem;
+  border-bottom: 1px solid var(--border-light);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cabecera-pagina h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--text-main), var(--primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.contenido-dinamico {
+  padding: 3rem;
+  animation: pageReveal 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pageReveal {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tablet / Mobile tweaks */
+@media (max-width: 900px) {
+  .barra-lateral:not(.plegada) {
+    width: 250px;
+  }
+}

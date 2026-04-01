@@ -1,0 +1,218 @@
+.queue-container {
+  padding: 1.5rem 2.5rem;
+  max-width: 850px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.queue-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.queue-header h3 {
+  font-size: 1.5rem;
+  color: var(--text-main);
+  margin: 0;
+  position: relative;
+  display: inline-block;
+}
+
+.queue-header h3::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 30px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: 2px;
+}
+
+.queue-badge {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border: 1px solid hsla(215, 90%, 55%, 0.1);
+}
+
+.queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Tarjetas de Cola Compactas */
+.queue-card {
+  display: flex;
+  align-items: center;
+  padding: 0.8rem 1.25rem;
+  background: var(--bg-card);
+  border-radius: 14px;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+  position: relative;
+  gap: 1.25rem;
+}
+
+.queue-card:hover {
+  transform: translateX(6px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
+}
+
+.card-rank {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: hsla(250, 20%, 50%, 0.1);
+  min-width: 24px;
+}
+
+/* Avatar del Paciente */
+.patient-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+}
+
+/* Info Principal */
+.patient-main-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.patient-name {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.badge-tramite {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 5px;
+  letter-spacing: 0.4px;
+}
+
+.badge-tramite.primera-vez {
+  background: hsla(150, 80%, 40%, 0.1);
+  color: hsl(150, 80%, 30%);
+}
+
+.badge-tramite.renovacion {
+  background: hsla(30, 90%, 50%, 0.1);
+  color: hsl(30, 90%, 40%);
+}
+
+.detail-row {
+  display: flex;
+  gap: 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Botón de Acción */
+.atender-btn {
+  background: var(--bg-secondary);
+  color: var(--primary);
+  border: 1px solid var(--primary-light);
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.atender-btn:hover {
+  background: var(--primary);
+  color: white;
+  transform: scale(1.04);
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: hsla(250, 20%, 98%, 0.5);
+  border-radius: 20px;
+  border: 2px dashed var(--border-light);
+}
+
+.empty-icon {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  .queue-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+  }
+}

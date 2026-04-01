@@ -1,0 +1,394 @@
+vamos a trabajar en un sistema de registro y tramite de un carnet sanitario para el sedes beni, este tramite se tiene que 
+renovar anualmente y el proceso del tramite se divide en tres areas en las que se debe de registrar o editar los datos 
+personales del cliente, sus respectivos analisis de laboratorio y la revision medica para obtener el carnet sanitario.
+el patron de la estructura sera de tres capas, pero manejadas de forma diferente.
+la base del sistema es que se manejara por roles cada rol tendra una vista independiente a las 
+vistas de los otros roles, eso solo a nivel de vista ya que a nivel logico seguiran relacionados.
+**tecnologias**
+posgres para la base de datos.
+react para el fronten 
+node.js para la logica
+docker para contenedor
+**base de datos**
+-- ================================================================
+-- NIVEL 1 — CATÁLOGOS INDEPENDIENTES
+-- ================================================================
+
+-- 1.1 Roles del sistema
+CREATE TABLE roles (
+    id_rol      SERIAL       PRIMARY KEY,
+    nombre_rol  VARCHAR(60)  NOT NULL UNIQUE,
+    descripcion TEXT
+);
+
+INSERT INTO roles (nombre_rol, descripcion) VALUES
+    ('ADMINISTRADOR',  'registro y control de usuarios, manejo de reportes y datos estadisticos de las otras areas'),
+    ('BIOANALISTA',    'Registro y control de rasustados de analisis de laboratorio'),
+    ('MEDICO',         'Consulta, diagnóstico y tratamiento')
+
+
+-- 1.2 Tipos / clase de trabajo del cliente
+CREATE TABLE tipos_trabajo (
+    id_tipo_trabajo  SERIAL       PRIMARY KEY,
+    descripcion      VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- ================================================================
+-- NIVEL 2 — ENTIDADES BASE
+-- ================================================================
+
+-- 2.1 Usuarios del sistema
+CREATE TABLE usuarios (
+    id_usuario      SERIAL        PRIMARY KEY,
+    nombre          VARCHAR(100)  NOT NULL,
+    apellido        VARCHAR(100)  NOT NULL,
+    ci              VARCHAR(20)   NOT NULL UNIQUE,
+    id_rol          INT           NOT NULL REFERENCES roles(id_rol),
+    contrasena_hash TEXT          NOT NULL,   -- usar pgcrypto crypt()
+    fecha_creacion  TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    activo          BOOLEAN       NOT NULL DEFAULT TRUE
+);
+
+-- 2.2 Clientes / pacientes
+CREATE TABLE clientes (
+    id_cliente       SERIAL        PRIMARY KEY,
+    nombre           VARCHAR(100)  NOT NULL,
+    apellido         VARCHAR(100)  NOT NULL,
+    fecha_nacimiento DATE          NOT NULL,
+    ci               VARCHAR(20)   NOT NULL UNIQUE,
+    domicilio        TEXT          NOT NULL,
+    nro_celular      VARCHAR(20),
+    fecha_registro   TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    lugar_trabajo    VARCHAR(200),
+    foto             TEXT,
+    tipo_tramite     VARCHAR(20), -- primera vez, renovacion
+    id_tipo_trabajo  INT           REFERENCES tipos_trabajo(id_tipo_trabajo),
+    grupo_sanguineo  VARCHAR(100)       --este dato se optendra mas despues de su registro inicial 
+);
+CREATE INDEX idx_clientes_ci ON clientes(ci);
+
+
+-- ================================================================
+-- NIVEL 2 — TABLAS DE ANÁLISIS  (campos clínicos reales)
+-- Todos incluyen: id_responsable (FK→usuarios) + ci_responsable
+-- ci_responsable: desnormalización de auditoría histórica controlada.
+-- ================================================================
+
+-- ----------------------------------------------------------------
+-- 2.3  PARASITOLOGÍA
+--      Examen coprológico / coproparasitológico estándar
+-- ----------------------------------------------------------------
+CREATE TABLE analisis_parasitologia (
+    id_parasitologia        SERIAL        PRIMARY KEY,
+
+    -- Características macroscópicas de la muestra
+    consistencia_heces      VARCHAR(20)   CHECK (consistencia_heces IN
+                              ('LIQUIDA','BLANDA','SEMIBLANDA','FORMADA','DURA')),
+    color_heces             VARCHAR(30),  -- Ej: café, amarillo, negro
+    sangre_macroscopica     BOOLEAN       DEFAULT FALSE,
+    moco_macroscopico       BOOLEAN       DEFAULT FALSE,
+
+    -- Características microscópicas
+    leucocitos              VARCHAR(20),  -- Ej: 0-2 xc, >5 xc
+    eritrocitos             VARCHAR(20),
+    celulas_epiteliales     VARCHAR(20),
+    levaduras               BOOLEAN       DEFAULT FALSE,
+
+    -- Hallazgos parasitológicos principales
+    parasito_encontrado     BOOLEAN       NOT NULL DEFAULT FALSE,
+    nombre_parasito         VARCHAR(200), -- Ej: Giardia lamblia, Ascaris lumbricoides
+    estadio_parasito        VARCHAR(50),  -- Quiste, Trofozoito, Huevo, Larva
+    cantidad_parasitos      VARCHAR(30),  -- Escaso, Moderado, Abundante
+
+    -- Método utilizado
+    metodo_directo          BOOLEAN       DEFAULT TRUE,
+    metodo_concentracion    BOOLEAN       DEFAULT FALSE, -- Ritchie, Baermann
+    metodo_kato_katz        BOOLEAN       DEFAULT FALSE,
+    tincion_utilizada       VARCHAR(50),  -- Lugol, Tricrómica, Ziehl-Neelsen
+
+    -- Control del análisis
+    resultado_general       TEXT          NOT NULL,
+    observaciones           TEXT,
+    id_responsable          INT           NOT NULL REFERENCES usuarios(id_usuario),
+    fecha_analisis          TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+
+-- ----------------------------------------------------------------
+-- 2.4  GRUPO SANGUÍNEO (análisis de tipificación)
+--      Incluye ABO, Rh y prueba cruzada(de aqui sale el dato faltante en la tabla clientes)
+-- ----------------------------------------------------------------
+CREATE TABLE analisis_grupo_sanguineo (
+    id_analisis_gs          SERIAL        PRIMARY KEY,
+
+    -- Tipificación ABO
+    reaccion_anti_a         VARCHAR(10),  -- Positivo / Negativo / Débil
+    reaccion_anti_b         VARCHAR(10),
+    reaccion_anti_ab        VARCHAR(10),
+
+    -- Factor Rh
+    reaccion_anti_d         VARCHAR(10),  -- Positivo / Negativo
+    rh_debil_du             BOOLEAN       DEFAULT FALSE,  -- Du/Weak D
+
+    -- Resultado confirmado
+    id_grupo_resultado      INT           NOT NULL REFERENCES grupos_sanguineos(id_grupo),
+    tecnica_utilizada       VARCHAR(60),  -- Ej: Hemaglutinación en tubo, Tarjeta gel
+
+    -- Prueba cruzada (si aplica)
+    prueba_cruzada_mayor    VARCHAR(20),  -- Compatible / Incompatible / No aplica
+    prueba_cruzada_menor    VARCHAR(20),
+
+    observaciones           TEXT,
+    id_responsable          INT           NOT NULL REFERENCES usuarios(id_usuario),
+    fecha_analisis          TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+
+-- ----------------------------------------------------------------
+-- 2.5  GLICEMIA  (glucosa en sangre)
+--      Incluye glucosa en ayunas y postprandial
+-- ----------------------------------------------------------------
+CREATE TABLE analisis_glicemia (
+    id_glicemia             SERIAL          PRIMARY KEY,
+
+    -- Tipo de muestra
+    tipo_muestra            VARCHAR(30)     NOT NULL
+                              CHECK (tipo_muestra IN
+                              ('AYUNAS','POSTPRANDIAL_1H','POSTPRANDIAL_2H',
+                               'CASUAL','CURVA_TOLERANCIA')),
+    horas_ayuno             SMALLINT,       -- horas de ayuno previo
+
+    -- Resultados (mg/dL)
+    glucosa_mg_dl           NUMERIC(7,2)    NOT NULL,
+    -- Para curva de tolerancia oral (PTOG)
+    glucosa_basal_mgdl      NUMERIC(7,2),
+    glucosa_60min_mgdl      NUMERIC(7,2),
+    glucosa_120min_mgdl     NUMERIC(7,2),
+
+    -- Interpretación automática según valores de referencia ADA
+    interpretacion          VARCHAR(30)     CHECK (interpretacion IN
+                              ('NORMAL','PREDIABETES','DIABETES',
+                               'HIPOGLUCEMIA','NO_APLICA')),
+
+    -- Método
+    metodo_analisis         VARCHAR(60),    -- Ej: Glucosa oxidasa, Hexokinasa
+    muestra_tipo            VARCHAR(20)     DEFAULT 'PLASMA_VENOSO',
+                            -- Plasma venoso, Sangre capilar
+
+    observaciones           TEXT,
+    id_responsable          INT             NOT NULL REFERENCES usuarios(id_usuario),
+    fecha_analisis          TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+
+-- ----------------------------------------------------------------
+-- 2.6  VIH  (Prueba de detección de VIH-1 y VIH-2)
+--      Protocolo PNLSS / OPS Bolivia
+-- ----------------------------------------------------------------
+CREATE TABLE analisis_vih (
+    id_vih                  SERIAL        PRIMARY KEY,
+
+    -- Prueba de tamizaje (ELISA / prueba rápida)
+    prueba_tamizaje         VARCHAR(60)   NOT NULL,  -- Nombre del kit comercial
+    resultado_tamizaje      VARCHAR(20)   NOT NULL
+                              CHECK (resultado_tamizaje IN
+                              ('REACTIVO','NO_REACTIVO','INDETERMINADO')),
+    indice_s_co             NUMERIC(6,3), -- Índice S/CO de ELISA
+
+    -- Prueba confirmatoria (si tamizaje reactivo)
+    prueba_confirmatoria    VARCHAR(60),  -- Ej: Western Blot, Inmunofluorescencia
+    resultado_confirmatorio VARCHAR(20)   CHECK (resultado_confirmatorio IN
+                              ('POSITIVO','NEGATIVO','INDETERMINADO','NO_REALIZADO')),
+
+    -- Tipo de muestra
+    tipo_muestra            VARCHAR(30)   DEFAULT 'SUERO'
+                              CHECK (tipo_muestra IN
+                              ('SUERO','PLASMA','SANGRE_TOTAL','PRUEBA_RAPIDA')),
+
+    -- Resultado final reportado
+    resultado_final         VARCHAR(20)   NOT NULL
+                              CHECK (resultado_final IN
+                              ('REACTIVO','NO_REACTIVO','INDETERMINADO')),
+
+    -- Control de calidad
+    control_positivo        BOOLEAN,
+    control_negativo        BOOLEAN,
+
+    -- Consejería pre/post test
+    consejeria_pretest      BOOLEAN       DEFAULT FALSE,
+    consejeria_postest      BOOLEAN       DEFAULT FALSE,
+
+    observaciones           TEXT,
+    id_responsable          INT           NOT NULL REFERENCES usuarios(id_usuario),
+    fecha_analisis          TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+
+-- ----------------------------------------------------------------
+-- 2.7  CHAGAS  (Enfermedad de Chagas / T. cruzi)
+--      Protocolo SEDES / Ministerio de Salud Bolivia
+-- ----------------------------------------------------------------
+CREATE TABLE analisis_chagas (
+    id_chagas               SERIAL        PRIMARY KEY,
+
+    -- Fase de la enfermedad (orientativa)
+    fase_sospechada         VARCHAR(20)   CHECK (fase_sospechada IN
+                              ('AGUDA','CRONICA','CONGENITA','DESCONOCIDA')),
+
+    -- Pruebas serológicas (recomendación OPS: ≥2 pruebas para diagnóstico)
+    prueba_elisa            VARCHAR(60),
+    resultado_elisa         VARCHAR(20)   CHECK (resultado_elisa IN
+                              ('REACTIVO','NO_REACTIVO','INDETERMINADO','NO_REALIZADO')),
+    indice_elisa            NUMERIC(6,3),
+
+    prueba_hat              VARCHAR(60),  -- Hemaglutinación Indirecta
+    resultado_hat           VARCHAR(20)   CHECK (resultado_hat IN
+                              ('REACTIVO','NO_REACTIVO','INDETERMINADO','NO_REALIZADO')),
+
+    prueba_ifi              VARCHAR(60),  -- Inmunofluorescencia Indirecta
+    resultado_ifi           VARCHAR(20)   CHECK (resultado_ifi IN
+                              ('REACTIVO','NO_REACTIVO','INDETERMINADO','NO_REALIZADO')),
+    titulo_ifi              VARCHAR(20),  -- Ej: 1/32, 1/64
+
+    -- Prueba parasitológica directa (fase aguda)
+    gota_gruesa             BOOLEAN       DEFAULT FALSE,
+    resultado_gota_gruesa   VARCHAR(20)   CHECK (resultado_gota_gruesa IN
+                              ('POSITIVO','NEGATIVO','NO_REALIZADO')),
+    estudio_xenodiagnostico BOOLEAN       DEFAULT FALSE,
+
+    -- Resultado final según criterio OPS (concordancia ≥2 pruebas)
+    resultado_final         VARCHAR(20)   NOT NULL
+                              CHECK (resultado_final IN
+                              ('REACTIVO','NO_REACTIVO','INDETERMINADO')),
+
+    -- Control de calidad
+    control_positivo        BOOLEAN,
+    control_negativo        BOOLEAN,
+
+    observaciones           TEXT,
+    id_responsable          INT           NOT NULL REFERENCES usuarios(id_usuario),
+    fecha_analisis          TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+
+-- ================================================================
+-- NIVEL 3 — TABLA DETALLE: analisis_laboratorio
+--   Conecta: cliente ↔ usuario que registra ↔ cualquier análisis
+--   Cada registro vincula UN análisis específico (un tipo a la vez)
+--   con su cliente y el usuario que atendió.
+-- ================================================================
+CREATE TABLE analisis_laboratorio (
+    id_analisis_lab      SERIAL       PRIMARY KEY,
+    id_cliente           INT          NOT NULL REFERENCES clientes(id_cliente),
+    id_usuario_registro  INT          NOT NULL REFERENCES usuarios(id_usuario),
+
+    -- FK opcionales (solo la que corresponde al tipo de análisis será NOT NULL)
+    id_parasitologia     INT          REFERENCES analisis_parasitologia(id_parasitologia),
+    id_analisis_gs       INT          REFERENCES analisis_grupo_sanguineo(id_analisis_gs),
+    id_glicemia          INT          REFERENCES analisis_glicemia(id_glicemia),
+    id_vih               INT          REFERENCES analisis_vih(id_vih),
+    id_chagas            INT          REFERENCES analisis_chagas(id_chagas),
+
+    observacion          TEXT,
+    fecha_registro       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+    -- Garantiza que al menos un análisis esté presente en el registro
+    CONSTRAINT chk_al_menos_un_analisis CHECK (
+        id_parasitologia IS NOT NULL OR
+        id_analisis_gs   IS NOT NULL OR
+        id_glicemia      IS NOT NULL OR
+        id_vih           IS NOT NULL OR
+        id_chagas        IS NOT NULL
+    )
+);
+
+-- ================================================================
+-- NIVEL 4 — HISTORIAL MÉDICO
+--   Entidad más profunda: depende transitivamente de todos los niveles
+-- ================================================================
+CREATE TABLE historial_medico (
+    id_historial        SERIAL       PRIMARY KEY,
+    id_analisis_lab     INT          NOT NULL REFERENCES analisis_laboratorio(id_analisis_lab),
+    id_cliente          INT          NOT NULL REFERENCES clientes(id_cliente),
+    id_usuario          INT          NOT NULL REFERENCES usuarios(id_usuario),
+
+    diagnostico         TEXT         NOT NULL,
+    tratamiento         TEXT,
+    fecha_consulta      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    observaciones       TEXT
+);
+===========================================================================
+**sistema y descripcion de vistas**
+===========================================================================
+
+Vista principal (login):
+___________________________________________________________________________________________________________________________
+ Es la primera vista que el sistema va a mostrar
+los campos a llenar sera el CI y la contraseña 
+el sistema usara esos datos para saber que rol tiene ese usuario y lo llevara a la vista correspondiente
+por ejemplo: usuario CI 12345678 contraseña 12345 el sistema compara y busca en la base de datos a que usuario corresponde 
+estos datos y obtiene el rol, si es administrador lo llevara a la vista especial y especifica para ese rol.
+___________________________________________________________________________________________________________________________
+vista rol administrador:
+___________________________________________________________________________________________________________________________
+ esta vista va a tener un modulo para el registro de nuevos usuarios usando los campos de la tabla usuarios y la tabla 
+roles y un listado de los usuarios en donde controlara su estado y actualizacion de la informacion de los usuarios, 
+en pocas palabras es ese modulo se maneja el CRUD de los usuarios.
+
+Un modulo para el manejo del CRUD de los clientes usando los campos de la tabla clientes y tipos de 
+trabajo, este modulo cuando registra un nuevo cliente tendra predeterminado el valor de tipo de tramite = primera vez 
+y se podra editar este campo o atributo solo cuando pase un año desde su registro a renovación, en el lisdado de los 
+clientes tambien se mostrara una alerta cada que este a punto de cumplir un año, al cumplir el año y hasta que se renueve 
+el tramite del carnet por completo(por lo que habra un boton "renovar" que al presionar inicie un evento en donde se 
+empiese el proceso de renovacion empezando por la actualizacion de datos personales del cliente). por lo que tambien habra 
+un submodulo de seguimiento del tramite del carnet del cliente, que hara saber al administrador en que area o parte del 
+tramite se encuentra el proceso de creacion del carnet del cliente.
+en pocas palabras manejara el registro,control, seguimiento e impresion del carnet.
+
+un modulo de reportes en donde se maneje los datos estadisticos y administrativos como de saber cuantos carnets nuevos se 
+registraron en un rango de tiempo como hora, dia, semana, mes o año, y tambien en rango de años, así como para las 
+renovaciones. tambien saber o filtrar cuantos de esos son positivos en alguna enfermedad detectada en los analisis, cuantos
+son sanos, cuantos cambiaron de rubro, agruparlos por rangos de edad. datos estadisticos utiles para la administracion y 
+poder tabular, imprimir o crear un informe administrativo  usando esa informacion integrando IA para la interpretacion de 
+los datos.
+___________________________________________________________________________________________________________________________
+vista rol bioanalista:
+___________________________________________________________________________________________________________________________
+esta vista tendra un apartado en donde habra un listado de los clientes que estan en tramitacion ya sea por primera vez o 
+renovacion, ordenados por cola, que al seleccionar uno de ellos se abrira una ventana que capturara el id del cliente 
+seleccionado para la tabla analisis_aboratorio y esta ventana sera el formulario de esta tabla, que dicho formulario tambien
+a su vez tendra botones para llamar a los formularios de registro de cada analicis(paracitologia,chagas,VIH,glisemia,grupo 
+sanguineo)uno por cada analisis y cada ventana de formulario capturara el id de analisis de laboratiorio para relacionar. 
+
+otro apartado para datos de reportes como cuantos analisis se hicieron por hora, dia, semana, mes, año. filtrar por los 
+tipos de analisis y dar la cantidad, cuantos de esos son positivos, cuantos son negativos y asi. datos utiles para reportar
+___________________________________________________________________________________________________________________________
+vista rol medico: 
+___________________________________________________________________________________________________________________________
+esta vista tendra un apartado en donde habra un listado de los clientes que estan en tramitacion ya sea por primera vez o 
+renovacion, ordenados por cola, que al seleccionar uno de ellos se abrira una ventana en donde se mostrara informacion 
+basica del cliente junto con un formulario con los campos de historial medico de los atrivutos de la misma tabla(al 
+seleccionar al cliente se optiene el id de este, ) botones para mostrar los resultados de sus analisis(que se optienen 
+con una consulta sql) y el boton para registrar el historial. y marcar el final del tramite(si los analisis son positivos 
+para enfermedades se hara reconsulta).
+
+otro apartado para los datos comunes que se usan para hacer reportes como en las otras vistas pero orientados a esta area 
+de consulta medica.
+___________________________________________________________________________________________________________________________
+aspectos generales
+___________________________________________________________________________________________________________________________
+- el sistema debe contar con control de formato para que los usuarios no ingresen tipos de datos erroneos, informacion 
+incorrecta que no corresponde al campo, o dejar campos obligatorios vacios.
+- debe usar optimizacion de codigo para una mejor ejecucion y fluides de procesos elementales.
+- renderizacion profecional y optimizada.
+- reutilizacion de codigo.
+- seguridad en contra de inyeccion de SQL.
+- manejo de vulneravilidades.
+- manejo de control de errores.
+- nombres de funciones y parametros escritos en español
+- documentacion de codigo.
+- diseño minimalista y uso de colores que no cansen la vista.
+- manejo de prioridades por color y tamaño.
+- cumpliendo con las normas iso y de manejo de exelencia relacionadas a la creacion de algoritmos y software
+y todas la buenas practicas para el diseño, creaciony desarrollo de algoritmos y software.   
+

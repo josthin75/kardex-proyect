@@ -1,0 +1,10 @@
+# Dependencias (NUNCA se suben, pesan demasiado)
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Archivos de configuración local (Seguridad)
+.env
+.DS_Store
+dist/
+build/

@@ -1,0 +1,59 @@
+# Registro de Avance - Sistema SEDES Kardex
+
+## Sesión 1: 2026-03-20
+### Actividad: Inicio de implementación y Módulo de Login
+- Análisis inicial de documentos finalizado.
+- Estructura del proyecto planeada (Backend: Node.js, Frontend: React, DB: Postgres).
+- Infraestructura Backend creada:
+    - Directorios configurados.
+    - Script de inicialización de DB `database/init_login.sql` creado.
+    - Servidor Express `backend/index.js` implementado con ruta `/api/login`.
+    - Variables de entorno configuradas en `backend/.env`.
+- Infraestructura Frontend creada:
+    - Proyecto Vite + React inicializado.
+    - Componente `Login.jsx` y estilos `Login.css` implementados.
+    - Configuración de rutas en `App.jsx` con redirección por roles (Administrador, Bioanalista, Médico).
+- Registro de avance finalizado.
+
+## Sesión 2: 2026-03-20
+### Actividad: Módulo de Administrador - Gestión de Usuarios
+- Backend:
+    - Implementación de middleware `authenticateToken` y `isAdmin`.
+    - Creación de rutas CRUD para usuarios (`/api/usuarios`) y roles (`/api/roles`).
+- Frontend:
+    - Creación del `AdminLayout` con navegación integrada.
+    - Implementación del componente `UsersManager` para listar y registrar usuarios según el esquema.
+    - Implementación del componente `ClientsManager` para el registro de clientes con lógica de trámite inicial ("primera vez").
+    - Implementación de lógica de alertas visuales para renovaciones de carnets (basado en ciclo anual).
+    - Creación de sub-módulo de seguimiento de trámites con visualización de fases (ADMIN -> LABORATORIO -> MÉDICO -> FINALIZADO).
+    - Configuración de rutas anidadas en `App.jsx` para el panel de administración.
+
+## Sesión 3: 2026-03-20
+### Actividad: Módulo de Bioanalista - Laboratorio Clínico
+- Backend:
+    - Endpoints para obtener cola de espera de laboratorio.
+    - Endpoints para registrar resultados de Parasitología, VIH y Chagas.
+    - Ruta para consolidar el registro de `analisis_laboratorio`.
+- Frontend:
+    - Creación del `BioLayout`.
+    - Implementación de `LaboratoryQueue` con visualización de orden de llegada.
+    - Implementación de `LaboratoryAnalysis` con sistema de pestañas para múltiples exámenes clínicos.
+- Registro de avance actualizado.
+
+## Sesión 4: 2026-03-20
+### Actividad: Módulo Médico y Finalización del Sistema
+- Backend:
+    - Endpoints para cola médica (clientes con laboratorios listos).
+    - Endpoints para visualización de resultados detallados.
+    - Registro de Historial Médico y cierre de trámite.
+- Frontend:
+    - Implementación de `MedicalQueue` y `MedicalHistory`.
+    - Integración de la vista de resultados de laboratorio dentro de la consulta médica.
+    - Añadida funcionalidad (placeholder) de impresión de carnet sanitario una vez finalizado el trámite.
+- Verificación General:
+    - Cumplimiento de lógica de roles y vistas independientes.
+    - Control de formatos y seguridad básica (JWT/Bcrypt).
+    - Corrección de error de importación en Vite (estilos de colas).
+- Registro de avance finalizado.
+- Corrección de errores de despliegue: Restaurada ruta `/api/login`, corregido hash de contraseña admin y error 404 por reinicio de servidor.
+- Sincronización de Documentación: Auditada la base de datos real PostgreSQL y actualizado el archivo `data base sedes.txt` para que refleje fielmente el esquema en ejecución.
