@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
+import API_URL from '../config'; // Importamos la URL dinámica
 
 const Login = () => {
   const [ci, establecerCI] = useState('');
@@ -16,16 +17,18 @@ const Login = () => {
     establecerCargando(true);
 
     try {
-      const respuesta = await axios.post('http://localhost:5000/api/autenticacion/inicio-sesion', { 
+      // USAMOS API_URL EN LUGAR DE localhost
+      const respuesta = await axios.post(`${API_URL}/api/autenticacion/inicio-sesion`, { 
         ci, 
         contrasena 
       });
+      
       const { token, usuario } = respuesta.data;
 
       localStorage.setItem('token', token);
       localStorage.setItem('usuario', JSON.stringify(usuario));
 
-      // Redirección profesional basada en el rol del sistema
+      // Redirección basada en el rol
       if (usuario.rol === 'ADMINISTRADOR') {
         navegar('/admin');
       } else if (usuario.rol === 'BIOANALISTA') {
