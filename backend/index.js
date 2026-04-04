@@ -54,9 +54,9 @@ app.use(helmet({
 }));
 // Configuración de CORS: En producción, Render y Vercel necesitan permisos
 app.use(cors({
-  origin: '*', // Por ahora permitimos todo para evitar bloqueos en el despliegue
+  origin: '*', // Esto permite que Vercel se conecte sin problemas
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  credentials: true
 }));
 app.use(express.json());
 app.use('/archivos', express.static(path.join(__dirname, 'uploads')));
