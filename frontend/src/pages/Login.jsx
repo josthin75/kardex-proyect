@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
-import API_URL from '../config'; // Importamos la URL dinámica
+import API_URL from '../config'; 
 
 const Login = () => {
   const [ci, establecerCI] = useState('');
@@ -17,7 +17,8 @@ const Login = () => {
     establecerCargando(true);
 
     try {
-      // USAMOS API_URL EN LUGAR DE localhost
+      // Usamos la URL dinámica. 
+      // Si estás en Vercel, esto apuntará a Render automáticamente.
       const respuesta = await axios.post(`${API_URL}/api/autenticacion/inicio-sesion`, { 
         ci, 
         contrasena 
@@ -28,18 +29,25 @@ const Login = () => {
       localStorage.setItem('token', token);
       localStorage.setItem('usuario', JSON.stringify(usuario));
 
-      // Redirección basada en el rol
-      if (usuario.rol === 'ADMINISTRADOR') {
+      // Redirección lógica
+      const rol = usuario.id_rol === 1 ? 'ADMINISTRADOR' : usuario.rol; 
+
+      if (rol === 'ADMINISTRADOR') {
         navegar('/admin');
-      } else if (usuario.rol === 'BIOANALISTA') {
+      } else if (rol === 'BIOANALISTA') {
         navegar('/bioanalista');
-      } else if (usuario.rol === 'MEDICO') {
+      } else if (rol === 'MEDICO') {
         navegar('/medico');
       } else {
-        establecerError('Rol de usuario no reconocido en el sistema');
+        establecerError('Rol no reconocido. Contacte al soporte.');
       }
     } catch (err) {
-      establecerError(err.response?.data?.mensaje || 'Error en la autenticación central');
+      console.error("Error completo:", err);
+      if (err.code === 'ERR_NETWORK') {
+        establecerError('No se pudo conectar con el servidor. El backend en Render podría estar despertando, intenta de nuevo en 30 segundos.');
+      } else {
+        establecerError(err.response?.data?.mensaje || 'Credenciales incorrectas');
+      }
     } finally {
       establecerCargando(false);
     }
@@ -73,9 +81,9 @@ const Login = () => {
               placeholder="••••••••"
             />
           </div>
-          {error && <div className="error-message">{error}</div>}
+          {error && <div className="error-message" style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
           <button type="submit" disabled={cargando}>
-            {cargando ? 'Autenticando...' : 'Acceder al Sistema'}
+            {cargando ? 'Conectando con el servidor...' : 'Acceder al Sistema'}
           </button>
         </form>
       </div>
