@@ -11,14 +11,15 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
 const app = express();
+// Render asigna el puerto automáticamente mediante la variable PORT
 const puerto = process.env.PORT || 5000;
 
 // Prevenir que el servidor se cierre por errores no controlados
 process.on('unhandledRejection', (reason) => {
-  console.error('[SERVIDOR] Error no controlado (prevenido):', reason?.message || reason);
+  console.error('[SERVIDOR] Error no controlado:', reason?.message || reason);
 });
 process.on('uncaughtException', (err) => {
-  console.error('[SERVIDOR] Excepción capturada (prevenida):', err.message);
+  console.error('[SERVIDOR] Excepción capturada:', err.message);
 });
 
 // Asegurar que el directorio de fotos exista
@@ -51,16 +52,19 @@ const subirFoto = multer({
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
+// Configuración de CORS: En producción, Render y Vercel necesitan permisos
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: '*', // Por ahora permitimos todo para evitar bloqueos en el despliegue
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use('/archivos', express.static(path.join(__dirname, 'uploads')));
 
+// --- CONFIGURACIÓN DE BASE DE DATOS (Mantenemos tu local como respaldo) ---
 const poolBD = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL || 'postgres://postgres:1234@localhost:5432/sedeskardex',
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -645,4 +649,4 @@ app.get('/api/reportes/medico', autenticarToken, esMedico, async (req, res) => {
   }
 });
 
-app.listen(puerto, () => console.log(`[SERVICIO] SEDES Kardex activo en puerto ${puerto}`));
+app.listen(puerto, () => console.log(`🚀 Servidor en producción listo en puerto ${puerto}`));
