@@ -1,6 +1,8 @@
 // src/config.js
+const RENDER_URL = 'https://kardex-api.onrender.com'; 
+
 const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:5000' 
-    : 'https://kardex-api.onrender.com'; // <--- PEGA AQUÍ TU URL DE RENDER
+    : RENDER_URL;
 
 export default API_URL;
