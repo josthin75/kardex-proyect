@@ -11,26 +11,44 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
 const app = express();
-// Render asigna el puerto automáticamente mediante la variable PORT
 const puerto = process.env.PORT || 5000;
 
-// Prevenir que el servidor se cierre por errores no controlados
+// --- 1. ARREGLO DE CORS (SOLO UN BLOQUE) ---
+const opcionesCors = {
+  origin: [
+    'https://sedes-kardex.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    /\.vercel\.app$/
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(opcionesCors));
+app.options('*', cors(opcionesCors)); // IMPORTANTE: Responde a peticiones pre-flight
+
+// --- 2. SEGURIDAD Y MIDDLEWARES ---
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+app.use(express.json());
+app.use('/archivos', express.static(path.join(__dirname, 'uploads')));
+
+// --- 3. MANEJO DE ERRORES GLOBALES ---
 process.on('unhandledRejection', (reason) => {
-  console.error('[SERVIDOR] Error no controlado:', reason?.message || reason);
-});
-process.on('uncaughtException', (err) => {
-  console.error('[SERVIDOR] Excepción capturada:', err.message);
+  console.error('[SERVIDOR] Error no controlado:', reason);
 });
 
-// Asegurar que el directorio de fotos exista
+// --- 4. CONFIGURACIÓN DE ALMACENAMIENTO ---
 const fotosDir = path.join(__dirname, 'uploads/fotos');
 if (!fs.existsSync(fotosDir)) {
   fs.mkdirSync(fotosDir, { recursive: true });
 }
 
-// Almacenamiento Seguro con Filtros de Seguridad
 const almacenamiento = multer.diskStorage({
-  destination: (req, archivo, cb) => cb(null, path.join(__dirname, 'uploads/fotos')),
+  destination: (req, archivo, cb) => cb(null, fotosDir),
   filename: (req, archivo, cb) => {
     const sufijo = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, sufijo + path.extname(archivo.originalname));
@@ -39,7 +57,7 @@ const almacenamiento = multer.diskStorage({
 
 const subirFoto = multer({ 
   storage: almacenamiento,
-  limits: { fileSize: 2 * 1024 * 1024 }, // Limite 2MB (Optimizado para escalabilidad)
+  limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (req, archivo, cb) => {
     const tiposPermitidos = /jpeg|jpg|png|webp/;
     const mimetype = tiposPermitidos.test(archivo.mimetype);
@@ -49,45 +67,13 @@ const subirFoto = multer({
   }
 });
 
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
-// Configuración de CORS: En producción, Render y Vercel necesitan permisos
-app.use(cors({
-  origin: '*', // Esto permite que Vercel se conecte sin problemas
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
-app.use(express.json());
-app.use('/archivos', express.static(path.join(__dirname, 'uploads')));
-
-// --- CONFIGURACIÓN DE BASE DE DATOS (Mantenemos tu local como respaldo) ---
+// --- 5. BASE DE DATOS ---
 const poolBD = new Pool({ 
-  connectionString: process.env.DATABASE_URL || 'postgres://postgres:1234@localhost:5432/sedeskardex',
+  connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
 });
 
-// Función para asegurar índices de alto rendimiento (Escalabilidad)
-const asegurarIndices = async () => {
-  try {
-    const queries = [
-      'CREATE INDEX IF NOT EXISTS idx_clientes_fecha ON clientes(fecha_registro DESC)',
-      'CREATE INDEX IF NOT EXISTS idx_usuarios_ci ON usuarios(ci)',
-      'CREATE INDEX IF NOT EXISTS idx_analisis_lab_fecha ON analisis_laboratorio(fecha_registro DESC)',
-      'CREATE INDEX IF NOT EXISTS idx_historial_fecha ON historial_medico(fecha_consulta DESC)',
-      'CREATE INDEX IF NOT EXISTS idx_analisis_lab_cliente ON analisis_laboratorio(id_cliente)',
-      'CREATE INDEX IF NOT EXISTS idx_historial_cliente ON historial_medico(id_cliente)'
-    ];
-    for (let q of queries) await poolBD.query(q);
-    console.log('[CONFIG] Índices de rendimiento verificados/creados');
-  } catch (e) { console.error('[ALERTA] No se pudieron crear los índices:', e.message); }
-};
-asegurarIndices();
-
-// --- MIDDLEWARES (Español) ---
+// --- MIDDLEWARES DE AUTENTICACIÓN Y AUTORIZACIÓN ---
 
 const autenticarToken = (req, res, next) => {
   const cabecera = req.headers['authorization'];
@@ -101,7 +87,7 @@ const autenticarToken = (req, res, next) => {
   });
 };
 
-const esAdministrador = (req, usuario, next) => {
+const esAdministrador = (req, res, next) => {
   if (req.usuario.rol !== 'ADMINISTRADOR') return res.status(403).json({ mensaje: 'Acceso restringido: Se requiere rol de Administrador' });
   next();
 };
@@ -120,23 +106,32 @@ const esMedico = (req, res, next) => {
   next();
 };
 
-// --- RUTAS DE AUTENTICACIÓN ---
+// --- 6. RUTAS (LOGIN EJEMPLO) ---
 
 app.post('/api/autenticacion/inicio-sesion', async (req, res) => {
   const { ci, contrasena } = req.body;
   try {
-    const resU = await poolBD.query('SELECT u.*, r.nombre_rol FROM usuarios u JOIN roles r ON u.id_rol = r.id_rol WHERE u.ci = $1', [ci]);
-    if (resU.rows.length === 0) return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+    const resU = await poolBD.query(
+        'SELECT u.*, r.nombre_rol FROM usuarios u JOIN roles r ON u.id_rol = r.id_rol WHERE u.ci = $1', 
+        [ci]
+    );
+    
+    if (resU.rows.length === 0) return res.status(401).json({ mensaje: 'Usuario no encontrado' });
 
     const usuario = resU.rows[0];
     const valida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
-    if (!valida) return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+    if (!valida) return res.status(401).json({ mensaje: 'Contraseña incorrecta' });
 
-    const token = jwt.sign({ id: usuario.id_usuario, rol: usuario.nombre_rol }, process.env.JWT_SECRET, { expiresIn: '8h' });
+    const token = jwt.sign(
+        { id: usuario.id_usuario, rol: usuario.nombre_rol }, 
+        process.env.JWT_SECRET, 
+        { expiresIn: '8h' }
+    );
+    
     res.json({ token, usuario: { id: usuario.id_usuario, nombre: usuario.nombre, rol: usuario.nombre_rol } });
   } catch (e) { 
-    console.error('[LOGIN ERROR]', e);
-    res.status(500).json({ mensaje: 'Error interno del servidor' }); 
+    console.error(e);
+    res.status(500).json({ mensaje: 'Error en el servidor' }); 
   }
 });
 
@@ -649,4 +644,7 @@ app.get('/api/reportes/medico', autenticarToken, esMedico, async (req, res) => {
   }
 });
 
-app.listen(puerto, () => console.log(`🚀 Servidor en producción listo en puerto ${puerto}`));
+// --- 7. ENCENDIDO ---
+app.listen(puerto, () => {
+  console.log(`🚀 Servidor listo en puerto ${puerto}`);
+});
